@@ -11,7 +11,7 @@
 #define PORT 5050       // the port client will be connecting to 
 #define MAXDATASIZE 256 // max number of bytes we can get at once 
 
-char client_name[20];
+char client_name[20];    //cpmmecn
 
 void *dostuff (void *socket_desc)
 {
