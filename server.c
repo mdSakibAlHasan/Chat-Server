@@ -18,6 +18,7 @@ void *dostuff(void *); //the thread function
 struct client_struct{
     char client_name[20];
     int socket_number;
+    int active_status;
 };
 struct client_struct client_info[MAXCLIENT];
 int number_of_client=0;
@@ -79,7 +80,7 @@ int extract_name_message(char  str[], int client_index)
 {
   if(str[0] != '@'){                    //message must be start with @
     printf("Error message syntax\n");
-    return -1;
+    return -3;
   }
 
   char client_name[MAXCLIENT],sending_mesage[MAXDATASIZE],index=0,i=1;
@@ -102,7 +103,7 @@ int extract_name_message(char  str[], int client_index)
 
 
   for(int k=0;k<number_of_client;k++){                              //serach sender index and socket number
-    if(strcmp(client_info[k].client_name,client_name) == 0){
+    if(strcmp(client_info[k].client_name,client_name) == 0 && client_info[k].active_status == 1){
       return k;//client_info[k].socket_number;
     }
   }
@@ -117,7 +118,7 @@ int extract_name_message(char  str[], int client_index)
 void send_all(char str[],int client_index)
 {
     for(int i=0;i<number_of_client;i++){
-      if(client_index == i)                   //self message not send
+      if(client_index == i || client_info[i].active_status == 0)                   //self message not send
         continue;
 
       if (write(client_info[i].socket_number, str, strlen(str)) < 0) {        //send mesage all client listed
@@ -137,7 +138,10 @@ void sent_message_client(int client_index,char str[])
     }
     if(sock_index == -3){
         char warning_message[]={"Server-> Syntex error\n"};
-        write(client_info[client_index].socket_number, warning_message, strlen(warning_message));
+        if(strcmp(str,"exit\n")==0)
+            write(client_info[client_index].socket_number, "exit",5);
+        else
+            write(client_info[client_index].socket_number, warning_message, strlen(warning_message));
     }
     else if(sock_index == -2)
         send_all(str,client_index);
@@ -149,16 +153,6 @@ void sent_message_client(int client_index,char str[])
 
       return ;
 }
-
-
-// void save_name(int sock_number,char str_name[])
-// {
-//     strcpy(client_info[number_of_client].client_name,str_name);
-//     client_info[number_of_client++].socket_number = sock_number;
-
-//     return ;
-// }
-
 
 
 
@@ -178,6 +172,7 @@ void *dostuff (void *socket_desc)
   }
   
   strcpy(client_info[number_of_client].client_name,buffer);       //list client information
+  client_info[number_of_client].active_status = 1;
   client_info[number_of_client++].socket_number = sock;
 
   str = "Server-> Connection established\n";
@@ -193,9 +188,23 @@ void *dostuff (void *socket_desc)
       perror("ERROR reading from socket"); 
       exit(1);  
     }
-    printf("Here is the message: %s\n",buffer);
-
+    printf("Here is the message: %s \t %ld\n",buffer,strlen(buffer));
     sent_message_client(n,buffer);      //sent mesage other client
+
+    if(strcmp(buffer,"exit\n")==0){
+        int i;
+        for(i=0;i<number_of_client;i++)
+          if(client_info[i].socket_number == sock)  break;
+        
+        client_info[i].active_status = 0;
+        client_info[i].socket_number = -1;
+        printf("Connection closed %s socket %d",client_info[i].client_name,client_info[i].socket_number);
+        write(sock, buffer, strlen(buffer));
+        pthread_exit(NULL);
+        //continue;
+    }
+
+    
   }
 
   close(sock);

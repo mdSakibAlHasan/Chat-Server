@@ -25,6 +25,10 @@ void *dostuff (void *socket_desc)
             exit(0);  
         }
         buffer[numbytes] = '\0';
+        if(strcmp(buffer,"exit")==0){
+            printf("Close conn=ection\n");
+            exit(0);
+        }
 
         printf("From: %s\n",buffer);
     }
@@ -81,12 +85,12 @@ int main(int argc, char *argv[])
         bzero(buf,MAXDATASIZE);
         fgets(buf,MAXDATASIZE-1,stdin);
 
-        if(strcmp(buf,"exit\n")==0){
-            printf("Close connection\n");
-            pthread_exit(&thread_id);
-            close(sockfd);
-            exit(0);
-        }
+        // if(strcmp(buf,"exit\n")==0){
+        //     printf("Close connection\n");
+        //     pthread_exit(&thread_id);
+        //     close(sockfd);
+        //     exit(0);
+        // }
     
         if (write(sockfd,buf,strlen(buf)) < 0) {
             perror("ERROR writing to socket"); 
